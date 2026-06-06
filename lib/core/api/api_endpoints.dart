@@ -2,7 +2,10 @@ class ApiEndpoints {
   ApiEndpoints._();
 
   // Base URL - change this for production
-  static const String baseUrl = 'http://10.0.2.2:3000/api/v1';
+  // static const String baseUrl = 'http://10.0.2.2:3000/api/v1';
+  static const String baseUrl = 'http://[2400:1a00:3b67:621e:921d:5bb7:5c96:c695]:3000/api/v1';
+  // static const String baseUrl = 'http://192.168.1.xxx:3000/api/v1'; 
+  // static const String baseUrl = 'http://192.168.x.x:3000/api/v1';
 
   //static const String baseUrl = 'http://localhost:3000/api/v1';
   // For Android Emulator use: 'http://10.0.2.2:3000/api/v1'
@@ -23,7 +26,6 @@ class ApiEndpoints {
   // =========== Student Endpoints ===========
   static const String students = '/students';
   static const String studentLogin = '/students/login';
-  static const String studentRegister = '/students/register';
   static String studentById(String id) => '/students/$id';
   static String studentPhoto(String id) => '/students/$id/photo';
 

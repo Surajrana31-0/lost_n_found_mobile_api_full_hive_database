@@ -6,7 +6,7 @@ import 'package:lost_n_found/core/services/storage/user_session_service.dart';
 final themeModeProvider = NotifierProvider<ThemeModeNotifier, ThemeMode>(
   ThemeModeNotifier.new,
 );
-
+  
 class ThemeModeNotifier extends Notifier<ThemeMode> {
   static const String _themeKey = 'theme_mode';
 
