@@ -8,7 +8,7 @@ final itemLocalDatasourceProvider = Provider<ItemLocalDatasource>((ref) {
   return ItemLocalDatasource(hiveService: hiveService);
 });
 
-class ItemLocalDatasource implements IItemDataSource {
+class ItemLocalDatasource implements IItemLocalDataSource {
   final HiveService _hiveService;
 
   ItemLocalDatasource({required HiveService hiveService})

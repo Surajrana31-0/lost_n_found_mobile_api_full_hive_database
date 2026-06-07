@@ -1,36 +1,71 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lost_n_found/core/error/failures.dart';
+import 'package:lost_n_found/core/services/connectivity/network_info.dart';
 import 'package:lost_n_found/features/item/data/datasources/item_datasource.dart';
 import 'package:lost_n_found/features/item/data/datasources/local/item_local_datasource.dart';
+import 'package:lost_n_found/features/item/data/datasources/remote/item_remote_datasource.dart';
+import 'package:lost_n_found/features/item/data/models/item_api_model.dart';
 import 'package:lost_n_found/features/item/data/models/item_hive_model.dart';
 import 'package:lost_n_found/features/item/domain/entities/item_entity.dart';
 import 'package:lost_n_found/features/item/domain/repositories/item_repository.dart';
 
 final itemRepositoryProvider = Provider<IItemRepository>((ref) {
   final itemDatasource = ref.read(itemLocalDatasourceProvider);
-  return ItemRepository(itemDatasource: itemDatasource);
+  final itemRemoteDatasource = ref.read(itemRemoteDatasourceProvider);
+  final networkInfo = ref.read(networkInfoProvider);
+  return ItemRepository(
+    itemDatasource: itemDatasource,
+    itemRemoteDataSource: itemRemoteDatasource,
+    networkInfo: networkInfo,
+  );
 });
 
 class ItemRepository implements IItemRepository {
-  final IItemDataSource _itemDataSource;
+  final IItemLocalDataSource _itemDataSource;
+  final IItemRemoteDataSource? _itemRemoteDataSource;
+  final NetworkInfo? _networkInfo;
 
-  ItemRepository({required IItemDataSource itemDatasource})
-      : _itemDataSource = itemDatasource;
+  ItemRepository({
+    required IItemLocalDataSource itemDatasource,
+    IItemRemoteDataSource? itemRemoteDataSource,
+    NetworkInfo? networkInfo,
+  }) : _itemDataSource = itemDatasource,
+       _itemRemoteDataSource = itemRemoteDataSource,
+       _networkInfo = networkInfo;
 
   @override
   Future<Either<Failure, bool>> createItem(ItemEntity item) async {
-    try {
-      final itemModel = ItemHiveModel.fromEntity(item);
-      final result = await _itemDataSource.createItem(itemModel);
-      if (result) {
-        return const Right(true);
+    if (await _networkInfo?.isConnected == true &&
+        _itemRemoteDataSource != null) {
+      try {
+        final itemModel = ItemApiModel.fromEntity(item);
+        final result = await _itemRemoteDataSource!.createItem(itemModel);
+        if (result) {
+          // Optionally, we can also save the item locally after successful remote creation.
+          final localItemModel = ItemHiveModel.fromEntity(item);
+          await _itemDataSource.createItem(localItemModel);
+          return const Right(true);
+        }
+        return const Left(
+          ApiFailure(message: "Failed to create item on server"),
+        );
+      } catch (e) {
+        return Left(ApiFailure(message: e.toString()));
       }
-      return const Left(
-        LocalDatabaseFailure(message: "Failed to create item"),
-      );
-    } catch (e) {
-      return Left(LocalDatabaseFailure(message: e.toString()));
+    } else {
+      try {
+        final itemModel = ItemHiveModel.fromEntity(item);
+        final result = await _itemDataSource.createItem(itemModel);
+        if (result) {
+          return const Right(true);
+        }
+        return const Left(
+          LocalDatabaseFailure(message: "Failed to create item"),
+        );
+      } catch (e) {
+        return Left(LocalDatabaseFailure(message: e.toString()));
+      }
     }
   }
 
@@ -41,9 +76,7 @@ class ItemRepository implements IItemRepository {
       if (result) {
         return const Right(true);
       }
-      return const Left(
-        LocalDatabaseFailure(message: "Failed to delete item"),
-      );
+      return const Left(LocalDatabaseFailure(message: "Failed to delete item"));
     } catch (e) {
       return Left(LocalDatabaseFailure(message: e.toString()));
     }
@@ -75,7 +108,9 @@ class ItemRepository implements IItemRepository {
   }
 
   @override
-  Future<Either<Failure, List<ItemEntity>>> getItemsByUser(String userId) async {
+  Future<Either<Failure, List<ItemEntity>>> getItemsByUser(
+    String userId,
+  ) async {
     try {
       final models = await _itemDataSource.getItemsByUser(userId);
       final entities = ItemHiveModel.toEntityList(models);
@@ -108,7 +143,9 @@ class ItemRepository implements IItemRepository {
   }
 
   @override
-  Future<Either<Failure, List<ItemEntity>>> getItemsByCategory(String categoryId) async {
+  Future<Either<Failure, List<ItemEntity>>> getItemsByCategory(
+    String categoryId,
+  ) async {
     try {
       final models = await _itemDataSource.getItemsByCategory(categoryId);
       final entities = ItemHiveModel.toEntityList(models);
@@ -126,9 +163,7 @@ class ItemRepository implements IItemRepository {
       if (result) {
         return const Right(true);
       }
-      return const Left(
-        LocalDatabaseFailure(message: "Failed to update item"),
-      );
+      return const Left(LocalDatabaseFailure(message: "Failed to update item"));
     } catch (e) {
       return Left(LocalDatabaseFailure(message: e.toString()));
     }

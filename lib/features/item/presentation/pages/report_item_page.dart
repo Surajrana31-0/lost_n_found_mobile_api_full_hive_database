@@ -212,12 +212,22 @@ class _ReportItemPageState extends ConsumerState<ReportItemPage> {
     try {
       final hasPromission = await _userPermission(Permission.camera);
       if (!hasPromission) return;
-      final hasStoragePermission = await _userPermission(Permission.photos);
-      if (!hasStoragePermission) return;
       final hasMicrophonePermission = await _userPermission(
         Permission.microphone,
       );
       if (!hasMicrophonePermission) return;
+
+      
+      if (Platform.isAndroid) {
+      final androidInfo = await DeviceInfoPlugin().androidInfo;
+      if (androidInfo.version.sdkInt >= 33) {
+        final hasVideoPermission = await _userPermission(Permission.videos);
+        if (!hasVideoPermission) return;
+      } else {
+        final hasStoragePermission = await _userPermission(Permission.storage);
+        if (!hasStoragePermission) return;
+      }
+    }
       final XFile? video = await _imagePicker.pickVideo(
         source: ImageSource.camera,
         maxDuration: const Duration(minutes: 1),
