@@ -47,6 +47,7 @@ dependencies:
   flutter_cache_manager: ^3.3.1
   video_thumbnail: ^0.5.3
   flutter_svg: ^2.0.10+1
+  device_info_plus: ^9.0.0
 
   # Real-time Features
   web_socket_channel: ^3.0.3
