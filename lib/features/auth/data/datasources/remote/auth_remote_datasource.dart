@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lost_n_found/core/api/api_client.dart';
 import 'package:lost_n_found/core/api/api_endpoints.dart';
+import 'package:lost_n_found/core/services/storage/token_service.dart';
 import 'package:lost_n_found/core/services/storage/user_session_service.dart';
 import 'package:lost_n_found/features/auth/data/datasources/auth_datasource.dart';
 import 'package:lost_n_found/features/batch/data/models/auth_api_model.dart';
@@ -10,16 +11,20 @@ final authRemoteDatasourceProvider = Provider<IAuthRemoteDataSource>((ref) {
   return AuthRemoteDatasource(
     apiClient: ref.read(apiClientProvider),
     userSessionService: ref.read(userSessionServiceProvider),
+    tokenService: ref.read(tokenServiceProvider),
   );
 });
 
 class AuthRemoteDatasource implements IAuthRemoteDataSource {
   final ApiClient _apiClient;
   final UserSessionService _userSessionService;
+  final TokenService _tokenService;
   AuthRemoteDatasource({
     required ApiClient apiClient,
     required UserSessionService userSessionService,
-  }) : _apiClient = apiClient,
+    required TokenService tokenService,
+  }) : _tokenService = tokenService,
+       _apiClient = apiClient,
        _userSessionService = userSessionService;
 
   @override
@@ -38,6 +43,9 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
         fullName: user.fullName,
         username: user.username,
       );
+      //Save Token
+      final token = response.data['token'] as String?;
+      await _tokenService.saveToken(token!);
       return user;
     }
     return null;
