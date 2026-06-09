@@ -15,18 +15,18 @@ class ItemApiModel {
   final String? status;
 
   ItemApiModel({
-    required this.id,
+    this.id,
     required this.itemName,
-    required this.description,
+    this.description,
     required this.type,
     required this.location,
-    required this.category,
-    required this.media,
-    required this.mediaType,
+    this.category,
+    this.media,
+    this.mediaType,
     required this.isClaimed,
-    required this.claimedBy,
-    required this.reportedBy,
-    required this.status,
+    this.reportedBy,
+    this.claimedBy,
+    this.status,
   });
 
   //toJson

@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lost_n_found/core/error/failures.dart';
 import 'package:lost_n_found/core/services/connectivity/network_info.dart';
@@ -11,11 +12,11 @@ import 'package:lost_n_found/features/item/domain/entities/item_entity.dart';
 import 'package:lost_n_found/features/item/domain/repositories/item_repository.dart';
 
 final itemRepositoryProvider = Provider<IItemRepository>((ref) {
-  final itemDatasource = ref.read(itemLocalDatasourceProvider);
+  final itemLocalDatasource = ref.read(itemLocalDatasourceProvider);
   final itemRemoteDatasource = ref.read(itemRemoteDatasourceProvider);
   final networkInfo = ref.read(networkInfoProvider);
   return ItemRepository(
-    itemDatasource: itemDatasource,
+    itemDatasource: itemLocalDatasource,
     itemRemoteDataSource: itemRemoteDatasource,
     networkInfo: networkInfo,
   );
@@ -40,7 +41,7 @@ class ItemRepository implements IItemRepository {
         _itemRemoteDataSource != null) {
       try {
         final itemModel = ItemApiModel.fromEntity(item);
-        final result = await _itemRemoteDataSource!.createItem(itemModel);
+        final result = await _itemRemoteDataSource.createItem(itemModel);
         if (result) {
           // Optionally, we can also save the item locally after successful remote creation.
           final localItemModel = ItemHiveModel.fromEntity(item);
@@ -84,13 +85,27 @@ class ItemRepository implements IItemRepository {
 
   @override
   Future<Either<Failure, List<ItemEntity>>> getAllItems() async {
-    try {
+    //Considering that we want to fetch from remote if connected, otherwise from local
+    if (await _networkInfo?.isConnected == true && _itemRemoteDataSource != null) {
+      try{
+        final apimodels = await _itemRemoteDataSource.getAllItems();
+        final entities = ItemApiModel.toEntityList(apimodels);
+        return Right(entities);
+        
+      } on DioException catch(e){
+        return Left(ApiFailure(message: e.toString()));
+      }
+
+    }else{
+      try {
       final models = await _itemDataSource.getAllItems();
       final entities = ItemHiveModel.toEntityList(models);
       return Right(entities);
     } catch (e) {
       return Left(LocalDatabaseFailure(message: e.toString()));
     }
+    }
+    
   }
 
   @override
