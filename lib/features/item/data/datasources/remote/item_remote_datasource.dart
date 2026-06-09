@@ -101,7 +101,7 @@ class ItemRemoteDatasource implements IItemRemoteDataSource {
   Future<String> uploadImage(File image) async {
     final fileName = image.path.split('/').last;
     final formData = FormData.fromMap({
-      'filePhoto': await MultipartFile.fromFile(image.path, filename: fileName),
+      'itemPhoto': await MultipartFile.fromFile(image.path, filename: fileName),
     });
     //got token from tkoen service or secure storage
     final token = _tokenService.getToken();

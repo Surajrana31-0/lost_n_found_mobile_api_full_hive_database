@@ -44,28 +44,21 @@ class ItemApiModel {
     };
   }
 
-  static String? _referenceId(dynamic value) {
-    if (value == null) return null;
-    if (value is String) return value;
-    if (value is Map<String, dynamic>) {
-      return value['_id'] as String? ?? value['id'] as String?;
-    }
-    return null;
-  }
+ 
 
   factory ItemApiModel.fromJson(Map<String, dynamic> json) {
     return ItemApiModel(
-      id: json['_id'] as String? ?? json['id'] as String?,
+      id: json['_id'] as String?,
       itemName: json['itemName'] as String,
       description: json['description'] as String?,
       type: json['type'] as String,
       location: json['location'] as String,
-      category: _referenceId(json['category']),
+      category: json['category'] as String?,
       media: json['media'] as String?,
       mediaType: json['mediaType'] as String?,
       isClaimed: json['isClaimed'] as bool? ?? false,
-      claimedBy: _referenceId(json['claimedBy']),
-      reportedBy: _referenceId(json['reportedBy']),
+      claimedBy: json['claimedBy'] as String?,
+      reportedBy: json['reportedBy'] as String?,
       status: json['status'] as String?,
     );
   }
