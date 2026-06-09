@@ -97,4 +97,9 @@ class ItemLocalDatasource implements IItemLocalDataSource {
       return false;
     }
   }
+
+  @override
+  Future<void> syncItems(List<ItemHiveModel> items) async {
+    await _hiveService.syncItems(items);
+  }
 }

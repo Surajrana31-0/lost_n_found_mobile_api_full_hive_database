@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,19 +27,19 @@ final itemRepositoryProvider = Provider<IItemRepository>((ref) {
 class ItemRepository implements IItemRepository {
   final IItemLocalDataSource _itemDataSource;
   final IItemRemoteDataSource? _itemRemoteDataSource;
-  final NetworkInfo? _networkInfo;
+  final NetworkInfo _networkInfo;
 
   ItemRepository({
     required IItemLocalDataSource itemDatasource,
     IItemRemoteDataSource? itemRemoteDataSource,
-    NetworkInfo? networkInfo,
+    required NetworkInfo networkInfo,
   }) : _itemDataSource = itemDatasource,
        _itemRemoteDataSource = itemRemoteDataSource,
        _networkInfo = networkInfo;
 
   @override
   Future<Either<Failure, bool>> createItem(ItemEntity item) async {
-    if (await _networkInfo?.isConnected == true &&
+    if (await _networkInfo.isConnected &&
         _itemRemoteDataSource != null) {
       try {
         final itemModel = ItemApiModel.fromEntity(item);
@@ -85,27 +87,53 @@ class ItemRepository implements IItemRepository {
 
   @override
   Future<Either<Failure, List<ItemEntity>>> getAllItems() async {
-    //Considering that we want to fetch from remote if connected, otherwise from local
-    if (await _networkInfo?.isConnected == true && _itemRemoteDataSource != null) {
-      try{
-        final apimodels = await _itemRemoteDataSource.getAllItems();
-        final entities = ItemApiModel.toEntityList(apimodels);
-        return Right(entities);
-        
-      } on DioException catch(e){
-        return Left(ApiFailure(message: e.toString()));
-      }
-
-    }else{
+    if (await _networkInfo.isConnected &&
+        _itemRemoteDataSource != null) {
       try {
+        final apiModels = await _itemRemoteDataSource.getAllItems();
+        final hiveModels = apiModels
+            .map((model) => ItemHiveModel.fromEntity(model.toEntity()))
+            .toList();
+
+        await _itemDataSource.syncItems(hiveModels);
+
+        return Right(ItemApiModel.toEntityList(apiModels));
+      } on DioException catch (e) {
+        return _getLocalItemsOrFailure(
+          ApiFailure(
+            message:
+                e.response?.data?['message']?.toString() ??
+                e.message ??
+                'Failed to fetch items from server',
+            statusCode: e.response?.statusCode,
+          ),
+        );
+      } catch (e) {
+        return _getLocalItemsOrFailure(ApiFailure(message: e.toString()));
+      }
+    }
+
+    return _getLocalItems();
+  }
+
+  Future<Either<Failure, List<ItemEntity>>> _getLocalItems() async {
+    try {
       final models = await _itemDataSource.getAllItems();
-      final entities = ItemHiveModel.toEntityList(models);
-      return Right(entities);
+      return Right(ItemHiveModel.toEntityList(models));
     } catch (e) {
       return Left(LocalDatabaseFailure(message: e.toString()));
     }
-    }
-    
+  }
+
+  Future<Either<Failure, List<ItemEntity>>> _getLocalItemsOrFailure(
+    Failure failure,
+  ) async {
+    final localResult = await _getLocalItems();
+
+    return localResult.fold(
+      (_) => Left(failure),
+      (items) => items.isNotEmpty ? Right(items) : Left(failure),
+    );
   }
 
   @override
@@ -181,6 +209,36 @@ class ItemRepository implements IItemRepository {
       return const Left(LocalDatabaseFailure(message: "Failed to update item"));
     } catch (e) {
       return Left(LocalDatabaseFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> uploadImage(File image) async{
+    //Image Remote ma matrai upload hunu parxha
+    if ( await _networkInfo.isConnected ) {
+      try{
+        final fileName = await _itemRemoteDataSource!.uploadImage(image);
+        return Right(fileName);
+      }catch(e){
+        return Left(ApiFailure(message: e.toString()));
+       }
+    }else{
+      return const Left(ApiFailure(message: "No internet connection"));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> uploadVideo(File video) async {
+    //Video Remote ma matrai upload hunu parxha
+    if ( await _networkInfo.isConnected ) {
+      try{
+        final fileName = await _itemRemoteDataSource!.uploadVideo(video);
+        return Right(fileName);
+      }catch(e){
+        return Left(ApiFailure(message: e.toString()));
+       }
+    }else{
+      return const Left(ApiFailure(message: "No internet connection"));
     }
   }
 }

@@ -29,7 +29,6 @@ class ItemApiModel {
     this.status,
   });
 
-  //toJson
   Map<String, dynamic> toJson() {
     return {
       'itemName': itemName,
@@ -45,27 +44,33 @@ class ItemApiModel {
     };
   }
 
+  static String? _referenceId(dynamic value) {
+    if (value == null) return null;
+    if (value is String) return value;
+    if (value is Map<String, dynamic>) {
+      return value['_id'] as String? ?? value['id'] as String?;
+    }
+    return null;
+  }
 
-  //fromJson
   factory ItemApiModel.fromJson(Map<String, dynamic> json) {
     return ItemApiModel(
-      id: json['id'] as String?,
+      id: json['_id'] as String? ?? json['id'] as String?,
       itemName: json['itemName'] as String,
       description: json['description'] as String?,
       type: json['type'] as String,
       location: json['location'] as String,
-      category: json['category'] as String?,
-      media: json['media'] as String,
-      mediaType: json['mediaType'] as String,
-      isClaimed: json['isClaimed'] ?? false,
-      claimedBy: json['claimedBy'] as String?,
-      reportedBy: json['reportedBy'] as String?,
-      status: json['status'] as String,
+      category: _referenceId(json['category']),
+      media: json['media'] as String?,
+      mediaType: json['mediaType'] as String?,
+      isClaimed: json['isClaimed'] as bool? ?? false,
+      claimedBy: _referenceId(json['claimedBy']),
+      reportedBy: _referenceId(json['reportedBy']),
+      status: json['status'] as String?,
     );
   }
 
-  // toEntity
-  ItemEntity toEntity() { 
+  ItemEntity toEntity() {
     return ItemEntity(
       itemId: id,
       itemName: itemName,
@@ -82,7 +87,6 @@ class ItemApiModel {
     );
   }
 
-  //fromEntity
   factory ItemApiModel.fromEntity(ItemEntity entity) {
     return ItemApiModel(
       id: entity.itemId,
@@ -99,7 +103,7 @@ class ItemApiModel {
       status: entity.status,
     );
   }
-  //toEntityList
+
   static List<ItemEntity> toEntityList(List<ItemApiModel> apiModels) {
     return apiModels.map((apiModel) => apiModel.toEntity()).toList();
   }

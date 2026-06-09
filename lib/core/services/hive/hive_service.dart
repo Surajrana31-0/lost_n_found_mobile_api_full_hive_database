@@ -244,6 +244,15 @@ class HiveService {
     await _itemBox.delete(itemId);
   }
 
+  Future<void> syncItems(List<ItemHiveModel> items) async {
+    await _itemBox.clear();
+    for (final item in items) {
+      if (item.itemId != null) {
+        await _itemBox.put(item.itemId, item);
+      }
+    }
+  }
+
   // ======================= Category Queries =========================
 
   Box<CategoryHiveModel> get _categoryBox =>

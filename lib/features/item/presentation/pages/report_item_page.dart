@@ -156,6 +156,10 @@ class _ReportItemPageState extends ConsumerState<ReportItemPage> {
         _selectedMedia.clear(); //clear garau natra tya photo haru overlap hunxa
         _selectedMedia.add(photo);
       });
+      //upload photo to server
+      await ref
+          .read(itemViewModelProvider.notifier)
+          .uploadPhoto(File(photo.path));
     }
   }
 
@@ -166,7 +170,7 @@ class _ReportItemPageState extends ConsumerState<ReportItemPage> {
       final hasPermission = await _userPermission(permission);
       if (!hasPermission) return;
     } else {
-    // for allowing multiple selection in gallery
+      // for allowing multiple selection in gallery
       final hasPermission = await _userPermission(Permission.photos);
       if (!hasPermission) return;
     }
@@ -181,6 +185,8 @@ class _ReportItemPageState extends ConsumerState<ReportItemPage> {
                 .clear(); //clear garau natra tya photo haru overlap hunxa
             _selectedMedia.addAll(photos);
           });
+          //upload photos to server
+          await ref.read(itemViewModelProvider.notifier).uploadPhoto(File(photos[0].path));
         }
       } else {
         final XFile? photo = await _imagePicker.pickImage(
@@ -193,6 +199,9 @@ class _ReportItemPageState extends ConsumerState<ReportItemPage> {
                 .clear(); //clear garau natra tya photo haru overlap hunxa
             _selectedMedia.add(photo);
           });
+          await ref
+              .read(itemViewModelProvider.notifier)
+              .uploadPhoto(File(photo.path));
         }
       }
     } catch (e) {
@@ -217,17 +226,18 @@ class _ReportItemPageState extends ConsumerState<ReportItemPage> {
       );
       if (!hasMicrophonePermission) return;
 
-      
       if (Platform.isAndroid) {
-      final androidInfo = await DeviceInfoPlugin().androidInfo;
-      if (androidInfo.version.sdkInt >= 33) {
-        final hasVideoPermission = await _userPermission(Permission.videos);
-        if (!hasVideoPermission) return;
-      } else {
-        final hasStoragePermission = await _userPermission(Permission.storage);
-        if (!hasStoragePermission) return;
+        final androidInfo = await DeviceInfoPlugin().androidInfo;
+        if (androidInfo.version.sdkInt >= 33) {
+          final hasVideoPermission = await _userPermission(Permission.videos);
+          if (!hasVideoPermission) return;
+        } else {
+          final hasStoragePermission = await _userPermission(
+            Permission.storage,
+          );
+          if (!hasStoragePermission) return;
+        }
       }
-    }
       final XFile? video = await _imagePicker.pickVideo(
         source: ImageSource.camera,
         maxDuration: const Duration(minutes: 1),
